@@ -1,4 +1,5 @@
 import { CEPFormatter } from "./cep-formatter";
+import { RequestError } from "./request-error";
 
 export interface ApiCEPResult {
   code: string;
@@ -17,12 +18,7 @@ export class ApiCEP {
       `https://cdn.apicep.com/file/apicep/${CEPFormatter.format(cep)}.json`
     );
 
-    if (!response.ok) {
-      return new Error(
-        `Requisição falhou com o código de status ${response.status}`
-      );
-    }
-
+    if (!response.ok) return new RequestError(response.status);
     return await response.json();
   }
 }
