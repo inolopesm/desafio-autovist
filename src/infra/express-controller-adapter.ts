@@ -1,5 +1,5 @@
-import { RequestHandler } from "express";
-import { Controller, Request } from "../app/protocols/controller";
+import type { RequestHandler } from "express";
+import type { Controller, Request } from "../app/protocols/controller";
 
 export class ExpressControllerAdapter {
   static adapt(controller: Controller): RequestHandler {
