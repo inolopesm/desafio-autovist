@@ -1,5 +1,6 @@
 import type { Address } from "../entities/address";
 import type { Client } from "../entities/client";
+import type { Cache } from "../protocols/cache";
 import type { Response } from "../protocols/controller";
 import type { Validation } from "../protocols/validation";
 import type { FindOneAddressByCEPRepository } from "../repositories/find-one-address-by-cep-repository";
@@ -18,6 +19,7 @@ jest.mock("node:crypto", () => ({
 describe("CreateClientController", () => {
   let client: Client;
   let validation: Validation;
+  let cache: Cache;
   let findOneAddressByCEPRepository: FindOneAddressByCEPRepository;
   let findOneClientByEmailRepository: FindOneClientByEmailRepository;
   let createClientRepository: CreateClientRepository;
@@ -45,6 +47,16 @@ describe("CreateClientController", () => {
       },
     };
 
+    cache = {
+      async get<T>(): Promise<T | undefined> {
+        return client.address as T;
+      },
+
+      async set(): Promise<void> {
+        //
+      },
+    };
+
     findOneAddressByCEPRepository = {
       async findOneByCEP(): Promise<Address | null> {
         return client.address;
@@ -65,6 +77,7 @@ describe("CreateClientController", () => {
 
     createClientController = new CreateClientController({
       validation,
+      cache,
       findOneAddressByCEPRepository,
       findOneClientByEmailRepository,
       createClientRepository,
@@ -80,6 +93,10 @@ describe("CreateClientController", () => {
         cep: client.address.cep,
       },
     };
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it("should return 400 if validation fail", async () => {
@@ -98,6 +115,8 @@ describe("CreateClientController", () => {
   });
 
   it("should return 400 if cep does not exist", async () => {
+    jest.spyOn(cache, "get").mockResolvedValueOnce(undefined);
+
     jest
       .spyOn(findOneAddressByCEPRepository, "findOneByCEP")
       .mockResolvedValueOnce(null);
@@ -141,5 +160,42 @@ describe("CreateClientController", () => {
     };
 
     expect(response).toEqual(expectedResponse);
+  });
+
+  it("should check the cache for the address before querying the repository", async () => {
+    const getSpy = jest.spyOn(cache, "get");
+
+    const findOneByCEPSpy = jest.spyOn(
+      findOneAddressByCEPRepository,
+      "findOneByCEP"
+    );
+
+    await createClientController.handle(request);
+
+    const cacheKey = `address-where-cep-${client.address.cep}`;
+    expect(getSpy).toHaveBeenCalledTimes(1);
+    expect(getSpy).toHaveBeenCalledWith(cacheKey);
+
+    expect(findOneByCEPSpy).not.toHaveBeenCalled();
+  });
+
+  it("should set the cache with the address after querying the repository", async () => {
+    const findOneByCEPSpy = jest.spyOn(
+      findOneAddressByCEPRepository,
+      "findOneByCEP"
+    );
+
+    const setSpy = jest.spyOn(cache, "set");
+
+    jest.spyOn(cache, "get").mockResolvedValueOnce(undefined);
+
+    await createClientController.handle(request);
+
+    expect(findOneByCEPSpy).toHaveBeenCalledTimes(1);
+    expect(findOneByCEPSpy).toHaveBeenCalledWith(client.address.cep);
+
+    const cacheKey = `address-where-cep-${client.address.cep}`;
+    expect(setSpy).toHaveBeenCalledTimes(1);
+    expect(setSpy).toHaveBeenCalledWith(cacheKey, client.address);
   });
 });

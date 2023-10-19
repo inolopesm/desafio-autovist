@@ -1,4 +1,6 @@
 import * as crypto from "node:crypto";
+import type { Cache } from "../protocols/cache";
+import type { Address } from "../entities/address";
 import type { Client } from "../entities/client";
 import type { Controller, Request, Response } from "../protocols/controller";
 import type { Validation } from "../protocols/validation";
@@ -19,22 +21,26 @@ export interface CreateClientRequest extends Request {
 
 export class CreateClientController implements Controller {
   private readonly validation: Validation;
+  private readonly cache: Cache;
   private readonly findOneAddressByCEPRepository: FindOneAddressByCEPRepository;
   private readonly findOneClientByEmailRepository: FindOneClientByEmailRepository;
   private readonly createClientRepository: CreateClientRepository;
 
   constructor({
     validation,
+    cache,
     findOneAddressByCEPRepository,
     findOneClientByEmailRepository,
     createClientRepository,
   }: {
     validation: Validation;
+    cache: Cache;
     findOneAddressByCEPRepository: FindOneAddressByCEPRepository;
     findOneClientByEmailRepository: FindOneClientByEmailRepository;
     createClientRepository: CreateClientRepository;
   }) {
     this.validation = validation;
+    this.cache = cache;
     this.findOneAddressByCEPRepository = findOneAddressByCEPRepository;
     this.findOneClientByEmailRepository = findOneClientByEmailRepository;
     this.createClientRepository = createClientRepository;
@@ -52,13 +58,22 @@ export class CreateClientController implements Controller {
 
     const { name, email, phone, cep } = request.body as CreateClientDTO;
 
-    const address = await this.findOneAddressByCEPRepository.findOneByCEP(cep);
+    let address: Address | null | undefined;
 
-    if (address === null) {
-      return {
-        statusCode: 400,
-        body: { message: "CEP não existente" },
-      };
+    const cacheKey = `address-where-cep-${cep}`;
+    address = await this.cache.get<Address>(`address-where-cep-${cep}`);
+
+    if (address === undefined) {
+      address = await this.findOneAddressByCEPRepository.findOneByCEP(cep);
+
+      if (address === null) {
+        return {
+          statusCode: 400,
+          body: { message: "CEP não existente" },
+        };
+      }
+
+      await this.cache.set<Address>(cacheKey, address);
     }
 
     let client: Client | null = null;

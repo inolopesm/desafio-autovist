@@ -5,25 +5,18 @@ import {
   CreateClientRequest,
 } from "./app/controllers/create-client-controller";
 
-import { AddressInMemoryRepository } from "./infra/address-in-memory-repository";
 import { AddressViaCEPRepository } from "./infra/address-via-cep-repository";
 import { ClientMongoRepository } from "./infra/client-mongo-repository";
 import { ExpressControllerAdapter } from "./infra/express-controller-adapter";
-import { FindOneAddressByCEPRepositoryComposite } from "./infra/find-one-address-by-cep-repository-composite";
+import { InMemoryCache } from "./infra/in-memory-cache";
 import { MongoHelper } from "./infra/mongo-helper";
 import { YupValidationAdapter } from "./infra/yup-validation-adapter";
 
 MongoHelper.getInstance()
   .connect(process.env.MONGO_URL as string)
   .then(() => {
-    const addressInMemoryRepository = new AddressInMemoryRepository();
+    const inMemoryCache = new InMemoryCache();
     const addressViaCEPRepository = new AddressViaCEPRepository();
-
-    const findOneAddressByCEPRepositoryComposite =
-      new FindOneAddressByCEPRepositoryComposite([
-        addressInMemoryRepository,
-        addressViaCEPRepository,
-      ]);
 
     const clientMongoRepository = new ClientMongoRepository();
 
@@ -53,7 +46,8 @@ MongoHelper.getInstance()
               }),
             })
           ),
-          findOneAddressByCEPRepository: findOneAddressByCEPRepositoryComposite,
+          cache: inMemoryCache,
+          findOneAddressByCEPRepository: addressViaCEPRepository,
           findOneClientByEmailRepository: clientMongoRepository,
           createClientRepository: clientMongoRepository,
         })
