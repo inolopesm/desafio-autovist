@@ -1,13 +1,14 @@
 import type { Address } from "../entities/address";
 import type { Client } from "../entities/client";
-import { Request, Response } from "../protocols/controller";
-import type { CreateClientRepository } from "../repositories/create-client-repository";
+import type { Response } from "../protocols/controller";
+import type { Validation } from "../protocols/validation";
 import type { FindOneAddressByCEPRepository } from "../repositories/find-one-address-by-cep-repository";
 import type { FindOneClientByEmailRepository } from "../repositories/find-one-client-by-email-repository";
+import type { CreateClientRepository } from "../repositories/create-client-repository";
 
 import {
   CreateClientController,
-  CreateClientDTO,
+  CreateClientRequest,
 } from "./create-client-controller";
 
 jest.mock("node:crypto", () => ({
@@ -16,12 +17,12 @@ jest.mock("node:crypto", () => ({
 
 describe("CreateClientController", () => {
   let client: Client;
+  let validation: Validation;
   let findOneAddressByCEPRepository: FindOneAddressByCEPRepository;
   let findOneClientByEmailRepository: FindOneClientByEmailRepository;
   let createClientRepository: CreateClientRepository;
   let createClientController: CreateClientController;
-  let createClientDTO: CreateClientDTO;
-  let request: Request;
+  let request: CreateClientRequest;
 
   beforeAll(() => {
     client = {
@@ -35,6 +36,12 @@ describe("CreateClientController", () => {
         neighborhood: "Sé",
         city: "São Paulo",
         state: "SP",
+      },
+    };
+
+    validation = {
+      validate(): Error | null {
+        return null;
       },
     };
 
@@ -57,23 +64,37 @@ describe("CreateClientController", () => {
     };
 
     createClientController = new CreateClientController({
+      validation,
       findOneAddressByCEPRepository,
       findOneClientByEmailRepository,
       createClientRepository,
     });
 
-    createClientDTO = {
-      name: client.name,
-      email: client.email,
-      phone: client.phone,
-      cep: client.address.cep,
-    };
-
     request = {
       query: {},
       params: {},
-      body: createClientDTO,
+      body: {
+        name: client.name,
+        email: client.email,
+        phone: client.phone,
+        cep: client.address.cep,
+      },
     };
+  });
+
+  it("should return 400 if validation fail", async () => {
+    const error = new Error("validation failed");
+
+    jest.spyOn(validation, "validate").mockReturnValueOnce(error);
+
+    const response = await createClientController.handle(request);
+
+    const expectedResponse: Response = {
+      statusCode: 400,
+      body: { message: error.message },
+    };
+
+    expect(response).toEqual(expectedResponse);
   });
 
   it("should return 400 if cep does not exist", async () => {
