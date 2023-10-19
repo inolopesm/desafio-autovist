@@ -15,9 +15,11 @@ interface CreateClientDTO {
   cep: string;
 }
 
-export interface CreateClientRequest extends Request {
-  body: CreateClientDTO;
-}
+export type CreateClientRequest = Request<
+  /* TParams */ {},
+  /* TQuery */ {},
+  /* TBody */ CreateClientDTO
+>;
 
 export class CreateClientController implements Controller {
   private readonly validation: Validation;

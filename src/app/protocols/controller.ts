@@ -1,7 +1,11 @@
-export interface Request {
-  params: Record<string, string>;
-  query: Record<string, string>;
-  body: unknown;
+export interface Request<
+  TParams extends Record<string, string | undefined> = {},
+  TQuery extends Record<string, string | undefined> = {},
+  TBody = unknown
+> {
+  params: TParams;
+  query: TQuery;
+  body: TBody;
 }
 
 export interface Response {
