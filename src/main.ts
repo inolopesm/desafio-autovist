@@ -1,3 +1,4 @@
+import type { Server } from "node:http";
 import * as express from "express";
 
 import {
@@ -129,6 +130,20 @@ app.delete(
   )
 );
 
+let server: Server;
+
 MongoHelper.getInstance()
   .connect(MONGO_URL)
-  .then(() => app.listen(3000, "0.0.0.0"));
+  .then(() => (server = app.listen(3000, "0.0.0.0")));
+
+for (const event of ["SIGINT", "SIGTERM"] as const) {
+  process.on(event, () => {
+    server.close((err) => {
+      if (err) throw err;
+
+      MongoHelper.getInstance()
+        .disconnect()
+        .then(() => process.exit(0));
+    });
+  });
+}

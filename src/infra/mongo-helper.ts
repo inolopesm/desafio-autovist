@@ -8,6 +8,11 @@ export class MongoHelper {
     await this.client.connect();
   }
 
+  async disconnect(): Promise<void> {
+    if (this.client === null) throw new Error("Mongo not connected");
+    await this.client.close();
+  }
+
   getCollection<TSchema extends mongo.Document = mongo.Document>(
     name: string
   ): mongo.Collection<TSchema> {
