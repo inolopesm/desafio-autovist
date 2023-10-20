@@ -2,18 +2,20 @@ import type { Client } from "../entities/client";
 import type { Response } from "../protocols/controller";
 import type { Validation } from "../protocols/validation";
 import type { FindOneClientByIdRepository } from "../repositories/find-one-client-by-id-repository";
+import type { RemoveClientByIdRepository } from "../repositories/remove-client-by-id-repository";
 
 import {
-  FindOneClientController,
-  FindOneClientRequest,
-} from "./find-one-client-controller";
+  RemoveClientController,
+  RemoveClientRequest,
+} from "./remove-client-controller";
 
-describe("FindOneClientController", () => {
+describe("RemoveClientController", () => {
   let client: Client;
   let validation: Validation;
   let findOneClientByIdRepository: FindOneClientByIdRepository;
-  let findOneClientController: FindOneClientController;
-  let request: FindOneClientRequest;
+  let removeClientByIdRepository: RemoveClientByIdRepository;
+  let removeClientController: RemoveClientController;
+  let request: RemoveClientRequest;
 
   beforeAll(() => {
     client = {
@@ -42,9 +44,16 @@ describe("FindOneClientController", () => {
       },
     };
 
-    findOneClientController = new FindOneClientController({
+    removeClientByIdRepository = {
+      async removeById(): Promise<void> {
+        //
+      },
+    };
+
+    removeClientController = new RemoveClientController({
       validation,
       findOneClientByIdRepository,
+      removeClientByIdRepository,
     });
 
     request = {
@@ -63,7 +72,7 @@ describe("FindOneClientController", () => {
 
     jest.spyOn(validation, "validate").mockReturnValueOnce(error);
 
-    const response = await findOneClientController.handle(request);
+    const response = await removeClientController.handle(request);
 
     const expectedResponse: Response = {
       statusCode: 400,
@@ -78,7 +87,7 @@ describe("FindOneClientController", () => {
       .spyOn(findOneClientByIdRepository, "findOneById")
       .mockResolvedValueOnce(null);
 
-    const response = await findOneClientController.handle(request);
+    const response = await removeClientController.handle(request);
 
     const expectedResponse: Response = {
       statusCode: 400,
@@ -88,12 +97,12 @@ describe("FindOneClientController", () => {
     expect(response).toEqual(expectedResponse);
   });
 
-  it("should return 200 with client if successful", async () => {
-    const response = await findOneClientController.handle(request);
+  it("should return 200 and remove the client with the specified id if successful", async () => {
+    const response = await removeClientController.handle(request);
 
     const expectedResponse: Response = {
       statusCode: 200,
-      body: client,
+      body: { message: "Client deleted successfully" },
     };
 
     expect(response).toEqual(expectedResponse);

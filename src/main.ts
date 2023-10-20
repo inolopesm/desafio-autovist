@@ -10,16 +10,22 @@ import {
   FindClientsRequest,
 } from "./app/controllers/find-clients-controller";
 
+import {
+  FindOneClientController,
+  FindOneClientRequest,
+} from "./app/controllers/find-one-client-controller";
+
+import {
+  RemoveClientController,
+  RemoveClientRequest,
+} from "./app/controllers/remove-client-controller";
+
 import { AddressViaCEPRepository } from "./infra/address-via-cep-repository";
 import { ClientMongoRepository } from "./infra/client-mongo-repository";
 import { ExpressControllerAdapter } from "./infra/express-controller-adapter";
 import { InMemoryCache } from "./infra/in-memory-cache";
 import { MongoHelper } from "./infra/mongo-helper";
 import { YupValidationAdapter } from "./infra/yup-validation-adapter";
-import {
-  FindOneClientController,
-  FindOneClientRequest,
-} from "./app/controllers/find-one-client-controller";
 
 const { MONGO_URL } = process.env;
 
@@ -106,6 +112,23 @@ app.get(
   )
 );
 
+app.delete(
+  "/api/v1/clients/:clientId",
+  ExpressControllerAdapter.adapt(
+    new RemoveClientController({
+      validation: new YupValidationAdapter<RemoveClientRequest>((yup) =>
+        yup.object({
+          params: yup.object({ clientId: yup.string().defined().uuid() }),
+          query: yup.object(),
+          body: yup.object(),
+        })
+      ),
+      findOneClientByIdRepository: clientMongoRepository,
+      removeClientByIdRepository: clientMongoRepository,
+    })
+  )
+);
+
 MongoHelper.getInstance()
-  .connect(process.env.MONGO_URL as string)
+  .connect(MONGO_URL)
   .then(() => app.listen(3000, "0.0.0.0"));

@@ -4,6 +4,7 @@ import type { FindClientsLikeNameRepository } from "../app/repositories/find-cli
 import type { FindClientsRepository } from "../app/repositories/find-clients-repository";
 import type { FindOneClientByEmailRepository } from "../app/repositories/find-one-client-by-email-repository";
 import type { FindOneClientByIdRepository } from "../app/repositories/find-one-client-by-id-repository";
+import type { RemoveClientByIdRepository } from "../app/repositories/remove-client-by-id-repository";
 import { MongoHelper } from "./mongo-helper";
 
 export class ClientMongoRepository
@@ -12,7 +13,8 @@ export class ClientMongoRepository
     FindClientsLikeNameRepository,
     FindOneClientByEmailRepository,
     FindOneClientByIdRepository,
-    CreateClientRepository
+    CreateClientRepository,
+    RemoveClientByIdRepository
 {
   async find(
     limit: number,
@@ -71,5 +73,11 @@ export class ClientMongoRepository
     await MongoHelper.getInstance()
       .getCollection<Client>("clients")
       .insertOne(structuredClone(client));
+  }
+
+  async removeById(id: string): Promise<void> {
+    await MongoHelper.getInstance()
+      .getCollection<Client>("clients")
+      .deleteOne({ id });
   }
 }
