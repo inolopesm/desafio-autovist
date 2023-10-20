@@ -1,7 +1,7 @@
 {
   "scripts": {
     "start": "node dist/main.js",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "test": "jest",
     "dev": "nodemon -e ts -w src -x npx ts-node src/main.ts"
   },
