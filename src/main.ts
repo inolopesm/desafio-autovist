@@ -22,6 +22,8 @@ import {
   RemoveClientRequest,
 } from "./app/controllers/remove-client-controller";
 
+import { AddressApiCEPRepository } from "./infra/address-api-cep-repository";
+import { AddressBrasilAPIRepository } from "./infra/address-brasil-api-repository";
 import { AddressViaCEPRepository } from "./infra/address-via-cep-repository";
 import { ClientMongoRepository } from "./infra/client-mongo-repository";
 import { ExpressControllerAdapter } from "./infra/express-controller-adapter";
@@ -29,18 +31,40 @@ import { InMemoryCache } from "./infra/in-memory-cache";
 import { MongoHelper } from "./infra/mongo-helper";
 import { YupValidationAdapter } from "./infra/yup-validation-adapter";
 
+/* MONGO_URL environment variable */
+
 const { MONGO_URL } = process.env;
 
 if (MONGO_URL === undefined) {
   throw new Error("MONGO_URL is a required environment variable");
 }
 
+/* CEP_PROVIDER environment variable + Pick correct repository */
+
+const AddressRepositories = {
+  VIA_CEP: AddressViaCEPRepository,
+  API_CEP: AddressApiCEPRepository,
+  BRASIL_API: AddressBrasilAPIRepository,
+};
+
+const CEP_PROVIDER = (process.env.CEP_PROVIDER ??
+  "VIA_CEP") as keyof typeof AddressRepositories;
+
+if (!Object.keys(AddressRepositories).includes(CEP_PROVIDER)) {
+  const values = Object.keys(AddressRepositories).join(", ");
+  throw new Error(`CEP_PROVIDER must be one of following values: ${values}`);
+}
+
+const AddressRepository = AddressRepositories[CEP_PROVIDER];
+
+/* Dependencies */
 const logger = pino();
 
 const inMemoryCache = new InMemoryCache();
-const addressViaCEPRepository = new AddressViaCEPRepository();
+const addressRepository = new AddressRepository();
 const clientMongoRepository = new ClientMongoRepository();
 
+/* HTTP server */
 const app = express();
 
 app.use(express.json());
@@ -87,7 +111,7 @@ app.post(
         })
       ),
       cache: inMemoryCache,
-      findOneAddressByCEPRepository: addressViaCEPRepository,
+      findOneAddressByCEPRepository: addressRepository,
       findOneClientByEmailRepository: clientMongoRepository,
       createClientRepository: clientMongoRepository,
     })
@@ -172,11 +196,15 @@ app.use(
   }
 );
 
+/* Connects with mongo + Listen for HTTP connections */
+
 let server: Server;
 
 MongoHelper.getInstance()
   .connect(MONGO_URL)
   .then(() => (server = app.listen(3000, "0.0.0.0")));
+
+/* Graceful shutdown */
 
 for (const event of ["SIGINT", "SIGTERM"] as const) {
   process.on(event, () => {
