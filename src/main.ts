@@ -1,5 +1,6 @@
 import type { Server } from "node:http";
 import * as express from "express";
+import pino from "pino";
 
 import {
   CreateClientController,
@@ -34,6 +35,8 @@ if (MONGO_URL === undefined) {
   throw new Error("MONGO_URL is a required environment variable");
 }
 
+const logger = pino();
+
 const inMemoryCache = new InMemoryCache();
 const addressViaCEPRepository = new AddressViaCEPRepository();
 const clientMongoRepository = new ClientMongoRepository();
@@ -41,6 +44,25 @@ const clientMongoRepository = new ClientMongoRepository();
 const app = express();
 
 app.use(express.json());
+
+app.use((request, response, next) => {
+  const start = Date.now();
+
+  response.on("finish", () => {
+    const end = Date.now();
+
+    logger.info({
+      request: {
+        method: request.method,
+        url: request.url,
+        status: response.statusCode,
+        contentLength: Number(response.getHeader("content-length")),
+        responseTime: end - start,
+      },
+    });
+  });
+  next();
+});
 
 app.post(
   "/api/v1/clients",
@@ -128,6 +150,26 @@ app.delete(
       removeClientByIdRepository: clientMongoRepository,
     })
   )
+);
+
+app.use((_, res) => res.status(404).json({ message: "route not found" }));
+
+app.use(
+  (
+    err: unknown,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) => {
+    logger.error({
+      error:
+        err instanceof Error
+          ? { name: err.name, message: err.message, stack: err.stack }
+          : String(err),
+    });
+
+    res.status(500).json({ message: "internal server error" });
+  }
 );
 
 let server: Server;
