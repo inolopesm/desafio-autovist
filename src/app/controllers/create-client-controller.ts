@@ -16,8 +16,8 @@ interface CreateClientDTO {
 }
 
 export type CreateClientRequest = Request<
-  /* TParams */ {},
-  /* TQuery */ {},
+  /* TParams */ unknown,
+  /* TQuery */ unknown,
   /* TBody */ CreateClientDTO
 >;
 

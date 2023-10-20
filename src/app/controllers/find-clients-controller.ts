@@ -3,14 +3,14 @@ import type { Validation } from "../protocols/validation";
 import type { FindClientsLikeNameRepository } from "../repositories/find-clients-like-name-repository";
 import type { FindClientsRepository } from "../repositories/find-clients-repository";
 
-interface FindClientsDTO extends Record<string, string | undefined> {
+interface FindClientsDTO {
   limit?: string | undefined;
   offset?: string | undefined;
   name?: string | undefined;
 }
 
 export type FindClientsRequest = Request<
-  /* TParams */ {},
+  /* TParams */ unknown,
   /* TQuery */ FindClientsDTO,
   /* TBody */ unknown
 >;
