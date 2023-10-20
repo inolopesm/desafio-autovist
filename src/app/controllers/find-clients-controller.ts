@@ -1,10 +1,12 @@
 import type { Controller, Request, Response } from "../protocols/controller";
 import type { Validation } from "../protocols/validation";
-import { FindClientsRepository } from "../repositories/find-clients-repository";
+import type { FindClientsLikeNameRepository } from "../repositories/find-clients-like-name-repository";
+import type { FindClientsRepository } from "../repositories/find-clients-repository";
 
 interface FindClientsDTO extends Record<string, string | undefined> {
   limit?: string | undefined;
   offset?: string | undefined;
+  name?: string | undefined;
 }
 
 export type FindClientsRequest = Request<
@@ -16,16 +18,20 @@ export type FindClientsRequest = Request<
 export class FindClientsController implements Controller {
   private readonly validation: Validation;
   private readonly findClientsRepository: FindClientsRepository;
+  private readonly findClientsLikeNameRepository: FindClientsLikeNameRepository;
 
   constructor({
     validation,
     findClientsRepository,
+    findClientsLikeNameRepository,
   }: {
     validation: Validation;
     findClientsRepository: FindClientsRepository;
+    findClientsLikeNameRepository: FindClientsLikeNameRepository;
   }) {
     this.validation = validation;
     this.findClientsRepository = findClientsRepository;
+    this.findClientsLikeNameRepository = findClientsLikeNameRepository;
   }
 
   async handle(request: Request): Promise<Response> {
@@ -42,8 +48,12 @@ export class FindClientsController implements Controller {
 
     const limit = Number(query.limit ?? "10");
     const offset = Number(query.offset ?? "0");
+    const { name } = query;
 
-    const clients = await this.findClientsRepository.find(limit, offset);
+    // prettier-ignore
+    const clients = name
+      ? await this.findClientsLikeNameRepository.findLikeName({ limit, offset, name })
+      : await this.findClientsRepository.find(limit, offset);
 
     return {
       statusCode: 200,

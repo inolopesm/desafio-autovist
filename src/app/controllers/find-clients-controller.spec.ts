@@ -2,6 +2,7 @@ import type { Client } from "../entities/client";
 import type { Response } from "../protocols/controller";
 import type { Validation } from "../protocols/validation";
 import type { FindClientsRepository } from "../repositories/find-clients-repository";
+import type { FindClientsLikeNameRepository } from "../repositories/find-clients-like-name-repository";
 
 import {
   FindClientsController,
@@ -12,6 +13,7 @@ describe("FindClientsController", () => {
   let clients: Array<Pick<Client, "id" | "name">>;
   let validation: Validation;
   let findClientsRepository: FindClientsRepository;
+  let findClientsLikeNameRepository: FindClientsLikeNameRepository;
   let findClientsController: FindClientsController;
   let request: FindClientsRequest;
 
@@ -33,9 +35,16 @@ describe("FindClientsController", () => {
       },
     };
 
+    findClientsLikeNameRepository = {
+      async findLikeName(): Promise<Array<Pick<Client, "id" | "name">>> {
+        return clients;
+      },
+    };
+
     findClientsController = new FindClientsController({
       validation,
       findClientsRepository,
+      findClientsLikeNameRepository,
     });
 
     request = {
@@ -96,5 +105,30 @@ describe("FindClientsController", () => {
     };
 
     expect(response).toEqual(expectedResponse);
+  });
+
+  it("should find clients like the name query parameter if it is present", async () => {
+    const findSpy = jest.spyOn(findClientsRepository, "find");
+
+    const findLikeNameSpy = jest.spyOn(
+      findClientsLikeNameRepository,
+      "findLikeName"
+    );
+
+    const query: FindClientsRequest["query"] = {
+      limit: "25",
+      offset: "50",
+      name: "João",
+    };
+
+    await findClientsController.handle({ ...request, query });
+
+    expect(findSpy).not.toHaveBeenCalled();
+
+    const [limit, offset] = [Number(query.limit), Number(query.offset)];
+    const { name } = query;
+
+    expect(findLikeNameSpy).toHaveBeenCalledTimes(1);
+    expect(findLikeNameSpy).toHaveBeenCalledWith({ limit, offset, name });
   });
 });

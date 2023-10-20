@@ -75,11 +75,13 @@ app.get(
             offset: yup
               .string()
               .matches(/^\d+$/, "${path} must contain only numbers"),
+            name: yup.string().max(255),
           }),
           body: yup.object(),
         })
       ),
       findClientsRepository: clientMongoRepository,
+      findClientsLikeNameRepository: clientMongoRepository,
     })
   )
 );

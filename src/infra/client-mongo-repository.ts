@@ -1,5 +1,6 @@
 import type { Client } from "../app/entities/client";
 import type { CreateClientRepository } from "../app/repositories/create-client-repository";
+import type { FindClientsLikeNameRepository } from "../app/repositories/find-clients-like-name-repository";
 import type { FindClientsRepository } from "../app/repositories/find-clients-repository";
 import type { FindOneClientByEmailRepository } from "../app/repositories/find-one-client-by-email-repository";
 import { MongoHelper } from "./mongo-helper";
@@ -7,6 +8,7 @@ import { MongoHelper } from "./mongo-helper";
 export class ClientMongoRepository
   implements
     FindClientsRepository,
+    FindClientsLikeNameRepository,
     FindOneClientByEmailRepository,
     CreateClientRepository
 {
@@ -17,6 +19,25 @@ export class ClientMongoRepository
     const result = await MongoHelper.getInstance()
       .getCollection<Client>("clients")
       .find()
+      .limit(limit)
+      .skip(offset)
+      .toArray();
+
+    return result.map(({ id, name }) => ({ id, name }));
+  }
+
+  async findLikeName({
+    limit,
+    offset,
+    name,
+  }: {
+    limit: number;
+    offset: number;
+    name: string;
+  }): Promise<Array<Pick<Client, "id" | "name">>> {
+    const result = await MongoHelper.getInstance()
+      .getCollection<Client>("clients")
+      .find({ name: { $regex: new RegExp(name, "i") } })
       .limit(limit)
       .skip(offset)
       .toArray();
