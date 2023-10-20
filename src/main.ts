@@ -45,11 +45,11 @@ app.post(
             phone: yup
               .string()
               .defined()
-              .matches(/^\d{11}$/),
+              .matches(/^\d{11}$/, "${path} must be exactly 11 numbers"),
             cep: yup
               .string()
               .defined()
-              .matches(/^\d{8}$/),
+              .matches(/^\d{8}$/, "${path} must be exactly 8 numbers"),
           }),
         })
       ),
@@ -69,8 +69,12 @@ app.get(
         yup.object({
           params: yup.object(),
           query: yup.object({
-            limit: yup.string().matches(/^\d+$/),
-            offset: yup.string().matches(/^\d+$/),
+            limit: yup
+              .string()
+              .matches(/^\d+$/, "${path} must contain only numbers"),
+            offset: yup
+              .string()
+              .matches(/^\d+$/, "${path} must contain only numbers"),
           }),
           body: yup.object(),
         })

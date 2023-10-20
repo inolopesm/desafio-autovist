@@ -125,7 +125,7 @@ describe("CreateClientController", () => {
 
     const expectedResponse: Response = {
       statusCode: 400,
-      body: { message: "CEP não existente" },
+      body: { message: "CEP not found" },
     };
 
     expect(response).toEqual(expectedResponse);
@@ -140,7 +140,7 @@ describe("CreateClientController", () => {
 
     const expectedResponse: Response = {
       statusCode: 400,
-      body: { message: "Já existe um cliente com este e-mail" },
+      body: { message: "E-mail in use" },
     };
 
     expect(response).toEqual(expectedResponse);

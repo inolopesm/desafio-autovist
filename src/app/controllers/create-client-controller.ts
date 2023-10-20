@@ -71,7 +71,7 @@ export class CreateClientController implements Controller {
       if (address === null) {
         return {
           statusCode: 400,
-          body: { message: "CEP não existente" },
+          body: { message: "CEP not found" },
         };
       }
 
@@ -85,7 +85,7 @@ export class CreateClientController implements Controller {
     if (client !== null) {
       return {
         statusCode: 400,
-        body: { message: "Já existe um cliente com este e-mail" },
+        body: { message: "E-mail in use" },
       };
     }
 

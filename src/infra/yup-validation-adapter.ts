@@ -16,7 +16,7 @@ export class YupValidationAdapter<T extends Request> implements Validation {
       return null;
     } catch (error) {
       if (error instanceof y.ValidationError) {
-        return new Error(new Intl.ListFormat("pt-BR").format(error.errors));
+        return new Error(new Intl.ListFormat().format(error.errors));
       }
 
       throw error;
