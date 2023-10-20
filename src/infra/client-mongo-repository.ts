@@ -3,6 +3,7 @@ import type { CreateClientRepository } from "../app/repositories/create-client-r
 import type { FindClientsLikeNameRepository } from "../app/repositories/find-clients-like-name-repository";
 import type { FindClientsRepository } from "../app/repositories/find-clients-repository";
 import type { FindOneClientByEmailRepository } from "../app/repositories/find-one-client-by-email-repository";
+import type { FindOneClientByIdRepository } from "../app/repositories/find-one-client-by-id-repository";
 import { MongoHelper } from "./mongo-helper";
 
 export class ClientMongoRepository
@@ -10,20 +11,20 @@ export class ClientMongoRepository
     FindClientsRepository,
     FindClientsLikeNameRepository,
     FindOneClientByEmailRepository,
+    FindOneClientByIdRepository,
     CreateClientRepository
 {
   async find(
     limit: number,
     offset: number
   ): Promise<Array<Pick<Client, "id" | "name">>> {
-    const result = await MongoHelper.getInstance()
+    return await MongoHelper.getInstance()
       .getCollection<Client>("clients")
       .find()
+      .project<Pick<Client, "id" | "name">>({ _id: 0, id: 1, name: 1 })
       .limit(limit)
       .skip(offset)
       .toArray();
-
-    return result.map(({ id, name }) => ({ id, name }));
   }
 
   async findLikeName({
@@ -38,6 +39,7 @@ export class ClientMongoRepository
     const result = await MongoHelper.getInstance()
       .getCollection<Client>("clients")
       .find({ name: { $regex: new RegExp(name, "i") } })
+      .project<Pick<Client, "id" | "name">>({ _id: 0, id: 1, name: 1 })
       .limit(limit)
       .skip(offset)
       .toArray();
@@ -49,6 +51,16 @@ export class ClientMongoRepository
     const result = await MongoHelper.getInstance()
       .getCollection<Client>("clients")
       .findOne({ email });
+
+    if (result === null) return null;
+    const { _id, ...client } = result;
+    return client;
+  }
+
+  async findOneById(id: string): Promise<Client | null> {
+    const result = await MongoHelper.getInstance()
+      .getCollection<Client>("clients")
+      .findOne({ id });
 
     if (result === null) return null;
     const { _id, ...client } = result;

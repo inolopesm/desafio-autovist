@@ -16,6 +16,10 @@ import { ExpressControllerAdapter } from "./infra/express-controller-adapter";
 import { InMemoryCache } from "./infra/in-memory-cache";
 import { MongoHelper } from "./infra/mongo-helper";
 import { YupValidationAdapter } from "./infra/yup-validation-adapter";
+import {
+  FindOneClientController,
+  FindOneClientRequest,
+} from "./app/controllers/find-one-client-controller";
 
 const { MONGO_URL } = process.env;
 
@@ -82,6 +86,22 @@ app.get(
       ),
       findClientsRepository: clientMongoRepository,
       findClientsLikeNameRepository: clientMongoRepository,
+    })
+  )
+);
+
+app.get(
+  "/api/v1/clients/:clientId",
+  ExpressControllerAdapter.adapt(
+    new FindOneClientController({
+      validation: new YupValidationAdapter<FindOneClientRequest>((yup) =>
+        yup.object({
+          params: yup.object({ clientId: yup.string().defined().uuid() }),
+          query: yup.object(),
+          body: yup.object(),
+        })
+      ),
+      findOneClientByIdRepository: clientMongoRepository,
     })
   )
 );
